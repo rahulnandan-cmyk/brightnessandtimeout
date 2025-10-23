@@ -1,0 +1,74 @@
+TestBeds:
+  - Name: DisplaySettingsTestBed
+    Controllers:
+      AndroidDevice:
+        - serial: emulator-5554
+
+    TestParams:
+      # Coordinates for Brightness Test
+      coordinates:
+        win_button: [20, 1055]
+        settings: [296, 577]
+        display: [242, 955]
+        brightness: [78, 321]
+
+      # Brightness test values
+      brightness_values: [255, 200, 150, 100, 50, 0]
+      brightness_method: "arrow_keys"
+      take_screenshots: true
+
+      # Coordinates for Timeout Test
+      timeout_coordinates:
+        win_button: [20, 1055]
+        settings: [296, 577]
+        display: [242, 955]
+        screen_timeout: [56, 520]
+        15_seconds: [83, 252.8]
+        30_seconds: [83, 312]
+        1_minute: [83, 371.2]
+        2_minutes: [83, 430.4]
+        5_minutes: [83, 489.6]
+        10_minutes: [83, 548.8]
+        30_minutes: [83, 616]
+
+      # Timeout Test Configuration
+      timeout_test_params:
+        # Timeout values with their expected milliseconds and wait times
+        timeout_sequence:
+          - name: "15_seconds"
+            expected_ms: 15000
+            wait_seconds: 20
+          - name: "30_seconds"
+            expected_ms: 30000
+            wait_seconds: 35
+          - name: "1_minute"
+            expected_ms: 60000
+            wait_seconds: 0  # 0 means skip screen-off check
+          - name: "2_minutes"
+            expected_ms: 120000
+            wait_seconds: 0
+          - name: "5_minutes"
+            expected_ms: 300000
+            wait_seconds: 0
+          - name: "10_minutes"
+            expected_ms: 600000
+            wait_seconds: 0
+          - name: "30_minutes"
+            expected_ms: 1800000
+            wait_seconds: 0
+
+        # General timeout test settings
+        enable_screen_off_verification: true
+        default_wait_time: 3  # seconds between actions
+        reset_to_30_seconds: true  # Reset to 30s at teardown
+
+      # Logging Configuration
+      logging:
+        log_level: "DEBUG"  # DEBUG, INFO, WARNING, ERROR
+        log_to_console: true
+        log_to_file: true
+
+    # Test Classes to Execute
+    Tests:
+      - ScreenTimeoutTest
+      - DisplaySettingsTest
