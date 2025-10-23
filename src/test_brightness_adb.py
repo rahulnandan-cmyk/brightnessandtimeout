@@ -55,7 +55,7 @@ class DisplaySettingsTest(base_test.BaseTestClass):
                 f"Brightness should change. Initial: {initial}, Final: {final}"
             )
 
-            logging.info("✓ TEST PASSED: Brightness successfully adjusted")
+            logging.info("TEST PASSED: Brightness successfully adjusted")
 
         except Exception as e:
             logging.error("Test failed: %s", e)
