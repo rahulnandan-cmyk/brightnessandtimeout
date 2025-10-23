@@ -33,6 +33,10 @@ class DisplayTestManager:
             logging.error("Test setup failed: %s", e)
             return False
 
+
+    def teardown_test(self) -> None:
+        pass
+
     def _wake_up_device_simple(self) -> bool:
         """Wake up device with basic commands"""
         logging.info("Waking up device...")
@@ -101,10 +105,12 @@ class DisplayTestManager:
                 if result_str.isdigit():
                     return int(result_str)
                 else:
-                    logging.warning("Non-digit brightness value: %s (attempt %d)", result_str, attempt + 1)
+                    logging.warning("Non-digit brightness value: %s (attempt %d)",
+                                    result_str, attempt + 1)
 
             except Exception as e:
-                logging.error("Failed to get brightness (attempt %d): %s", attempt + 1, e)
+                logging.error("Failed to get brightness (attempt %d): %s",
+                              attempt + 1, e)
                 if attempt == max_retries - 1:
                     raise
 
@@ -128,7 +134,8 @@ class DisplayTestManager:
             logging.error("Failed to select brightness slider: %s", e)
             return False
 
-    def _adjust_brightness_with_retry(self, right_presses: int, left_presses: int, delay: float) -> Tuple[int, int, List[tuple]]:
+    def _adjust_brightness_with_retry(self, right_presses: int, left_presses: int, delay: float) \
+            -> Tuple[int, int, List[tuple]]:
         """Try different methods to adjust brightness"""
         brightness_values = []
 
@@ -153,7 +160,6 @@ class DisplayTestManager:
 
         # Check if Method 1 worked
         if current_method_brightness != initial:
-            logging.info("Arrow keys are working! Continuing with LEFT presses...")
             for i in range(left_presses):
                 try:
                     self.ad.adb.shell("input keyevent KEYCODE_DPAD_LEFT")
@@ -198,30 +204,6 @@ class DisplayTestManager:
 
         return self.initial_brightness, self.final_brightness, brightness_values
 
-    def teardown_test(self) -> None:
-        """Complete test teardown - go back to home screen"""
-        logging.info("=" * 60)
-        logging.info("Starting Display Test Teardown")
-        logging.info("=" * 60)
-
-        try:
-            # Go directly to home screen instead of pressing BACK multiple times
-            self.ad.adb.shell("input keyevent KEYCODE_HOME")
-            time.sleep(2)
-
-            # Log final state
-            final_brightness = self._get_brightness()
-            logging.info("Final device brightness: %d", final_brightness)
-
-            if self.initial_brightness is not None:
-                change = final_brightness - self.initial_brightness
-                logging.info("Overall brightness change: %d -> %d (=%+d)",
-                             self.initial_brightness, final_brightness, change)
-
-            logging.info("Test teardown completed successfully")
-
-        except Exception as e:
-            logging.warning("Teardown had issues: %s", e)
 
 
 # Factory function
