@@ -1,6 +1,12 @@
 #!/usr/bin/env python3
 """Display Settings Test - Simplified with Common Utils"""
+import sys
+import os
 import logging
+
+# Add the parent directory to Python path to find utils module
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
+
 from mobly import asserts, base_test, test_runner
 from mobly.controllers import android_device
 
