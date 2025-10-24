@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# src/test_brightness_adb.py
 """Display Settings Test - Simplified with Common Utils"""
 import sys
 import os
