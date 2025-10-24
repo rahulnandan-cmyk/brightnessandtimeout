@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# utils/common_utils.py
+# utils/screenbrightness_utils.py
 import logging
 import time
 from typing import Tuple, List, Optional, Dict, Any
