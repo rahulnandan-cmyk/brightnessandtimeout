@@ -2,14 +2,20 @@
 # utils/screen_timeout_utils.py
 import logging
 import time
+import uiautomator2 as u2
 from typing import Tuple, List, Dict, Any, Optional
+
+from PyQt5.QtWidgets import QScrollArea
+# Mobly imports
+from  mobly import asserts, base_test
+from mobly.controllers import android_device
 
 class TimeoutTestManager:
     """Manages screen timeout test setup, execution, and teardown"""
 
-    def __init__(self, ad, coordinates: Dict[str, Tuple[int, int]]):
+    def __init__(self, ad: android_device.AndroidDevice ,coordinates: Dict[str, :Tuple[int, int]]):
         self.ad = ad
-        self.coords = coordinates
+        self.d = u2.connect(ad.serial)
         self.initial_timeout = None
 
     def setup_test(self) -> bool:
@@ -21,50 +27,28 @@ class TimeoutTestManager:
         try:
             # Disable 'Stay Awake' from developer settings
             self.ad.adb.shell("settings put global stay_on_while_plugged_in 0")
-
-            # Wake up device
             self._wake_up_device()
-
-            # Navigate to home screen
-            self.ad.adb.shell("input keyevent KEYCODE_HOME")
+            self.d.press("home")
             time.sleep(2)
+
+            # Verify the device is at home screen
+            current_pkg = self.d.info.get("currentPackageName", "")
+            asserts.assert_true(
+                "launcher" in current_pkg or "home" in current_pkg,
+                f"Expected launcher/home, but found: {current_pkg}"
+            )
 
             logging.info("Test setup completed successfully")
             return True
 
         except Exception as e:
-            logging.error("Test setup failed: %s", e)
+            logging.error("Test setup failed: %s", e, exc_info=True)
             return False
 
-    def teardown_test(self, default_timeout_key: str = "30_seconds") -> None:
-        """Reset screen timeout to default and return to home screen"""
-        try:
-            logging.info("Resetting screen timeout to default")
+    def teardown_test(self):
+        super().teardown_test()
 
-            # Wake up device
-            self._wake_up_device()
-
-            # Navigate to timeout settings
-            self._navigate_to_timeout_settings()
-
-            # Select default timeout
-            x, y = self.coords[default_timeout_key]
-            self.ad.adb.shell(f'input tap {x} {y}')
-            time.sleep(2)
-
-            # Verify reset
-            current_timeout = self._get_current_timeout()
-            if current_timeout == 30000:  # 30 seconds in ms
-                logging.info("Timeout reset to 30 seconds successfully")
-            else:
-                logging.warning(f"Timeout reset mismatch: {current_timeout}ms")
-
-            # Return to home
-            self._go_back_to_home()
-
-        except Exception as e:
-            logging.error("Teardown failed: %s", e)
-
+    # ---------- Utility Methods ----------
     def _wake_up_device(self) -> None:
         """Wake and unlock the device"""
         logging.info("Waking up device...")
@@ -76,15 +60,10 @@ class TimeoutTestManager:
     def _get_current_timeout(self) -> int:
         """Return current screen timeout in milliseconds"""
         try:
-            timeout = self.ad.adb.shell("settings get system screen_off_timeout")
-
-            # Handle bytes response from ADB
-            if isinstance(timeout, bytes):
-                timeout_str = timeout.decode('utf-8').strip()
-            else:
-                timeout_str = str(timeout).strip()
-
-            return int(timeout_str) if timeout_str.isdigit() else 0
+            result = self.ad.adb.shell("settings get system screen_off_timeout")
+            result_str = result.decode('utf-8').strip() if isinstance(result,bytes) else (
+                str(result).strip())
+            return int(result_str) if result_str.isdigit() else 0
         except Exception as e:
             logging.error("Failed to get current timeout: %s", e)
             return 0
@@ -93,19 +72,41 @@ class TimeoutTestManager:
         """Return True if screen is off"""
         try:
             state = self.ad.adb.shell("dumpsys power | grep mWakefulness")
-            if isinstance(state, bytes):
-                state = state.decode("utf-8", errors="ignore")
+            state = state.decode("utf-8")if isinstance(state, bytes) else state
             return "Asleep" in state
         except Exception as e:
             logging.error("Failed to check screen state: %s", e)
             return False
 
-    def _tap_coordinate(self, key: str, description: str) -> None:
-        """Tap on the specified coordinate"""
-        logging.info(description)
-        x, y = self.coords[key]
-        self.ad.adb.shell(f"input tap {x} {y}")
-        time.sleep(3)
+    def _open_timeout_settings(self):
+        """Navigate to settings -> Display -> Screen timeout """
+        logging.info("Navigate to screen timeout settings...")
+
+        # Launch settings
+        self.d.app_start("com.android.settings")
+        time.sleep(2)
+
+        # Click Display
+        if self.d(text="Display").exists:
+            self.d(text="Display").clicks()
+            logging.info("Opening Display settings")
+        else:
+            raise RuntimeError("Could not find 'Display' in settings")
+
+        time.sleep(2)
+
+        # Scroll to and click Screen timeout
+        if self.d(scrollable=True).exists:
+            self.d(scrollable=True).scroll.to(textContains="Screen timeout")
+
+        if self.d(textContains="Screen timeout").exists:
+            self.d(textContains="Screen timeout").clicks()
+            logging.info("Opened screen timeout menu")
+        else:
+            raise RuntimeError("Could not find 'Screen timeout' option")
+        time.sleep(2)
+
+
 
     def _navigate_to_timeout_settings(self) -> None:
         """Navigate to Screen Timeout menu via UI taps"""

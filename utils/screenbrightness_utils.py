@@ -144,7 +144,8 @@ class DisplayTestManager:
 
             time.sleep(1)
 
-        logging.error("Failed to retrieve brightness after %d attempts", max_retries)
+        logging.error("Failed to retrieve brightness after %d attempts",
+                      max_retries)
         return 0
 
     def _get_timeout(self, max_retries: int = 3) -> int:
