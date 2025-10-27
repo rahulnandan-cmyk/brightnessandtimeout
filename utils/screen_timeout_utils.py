@@ -1,59 +1,112 @@
 #!/usr/bin/env python3
-# test_timeout.py
-"""Sequential Screen Timeout Test using Mobly + UIAutomator2."""
+"""
+Utility: Screen Timeout Test Manager
+Manages screen timeout setup, validation, and teardown using UIAutomator2.
+"""
 
 import logging
 import time
-from mobly import base_test, test_runner
-from mobly.controllers import android_device
-from utils.screen_timeout_utils import TimeoutTestManager  # ← import your utility
+import uiautomator2 as u2
+from typing import Dict, Tuple, Any
 
 
-class ScreenTimeoutTest(base_test.BaseTestClass):
-    """Mobly test that validates screen timeout options using TimeoutTestManager."""
+class TimeoutTestManager:
+    """Manages screen timeout test setup, execution, and teardown."""
 
-    def setup_class(self):
-        """Register device and create TimeoutTestManager instance."""
-        self.ads = self.register_controller(android_device)
-        self.ad = self.ads[0]
+    def __init__(self, serial: str, coordinates: Dict[str, Tuple[int, int]]):
+        """
+        Initialize TimeoutTestManager.
 
-        # Create the utility manager
-        self.manager = TimeoutTestManager(self.ad)
+        Args:
+            serial (str): Device serial number for ADB/UIAutomator2 connection.
+            coordinates (dict): Dictionary of UI element coordinates (e.g., for tapping).
+        """
+        self.serial = serial
+        self.coords = coordinates
+        self.device = None
+        self.initial_timeout = None
 
-        # Configure logger
-        logging.basicConfig(
-            level=logging.INFO,
-            format="%(asctime)s - %(levelname)s - %(message)s"
-        )
+    # ------------------------------------------------------
+    # SETUP PHASE
+    # ------------------------------------------------------
+    def setup_test(self) -> None:
+        """Establish connection and record the current timeout value."""
+        logging.info("🔌 Connecting to device via UIAutomator2...")
+        self.device = u2.connect(self.serial)
+        logging.info(f"Connected to {self.serial}: {self.device.info}")
 
-        logging.info("===== Screen Timeout Test Setup =====")
-        assert self.manager.setup_test(), "Device setup failed!"
+        # Read current timeout setting
+        self.initial_timeout = self.device.shell("settings get system screen_off_timeout").strip()
+        logging.info(f"Initial screen timeout: {self.initial_timeout} ms")
 
-    def test_sequential_screen_timeouts(self):
-        """Run sequential screen timeout validation using TimeoutTestManager."""
-        logging.info("===== Starting Sequential Timeout Test =====")
+    # ------------------------------------------------------
+    # ACTION PHASE
+    # ------------------------------------------------------
+    def select_timeout_option(self, timeout_label: str) -> None:
+        """
+        Navigate UI and select a screen timeout option.
 
-        # Each tuple: (timeout_text, expected_ms, wait_sec)
-        timeout_configs = [
-            ("15 seconds", 15000, 20),
-            ("30 seconds", 30000, 35),
-            ("1 minute", 60000, 65),
-            ("2 minutes", 120000, 125),
-            ("5 minutes", 300000, 0),
-            ("10 minutes", 600000, 0),
-            ("30 minutes", 1800000, 0),
-        ]
+        Args:
+            timeout_label (str): Text label of the timeout option, e.g., "30 seconds"
+        """
+        logging.info(f"Opening Display → Screen Timeout → Selecting {timeout_label}")
 
-        # Run through the utility manager
-        self.manager.test_sequential_timeouts(timeout_configs)
+        # Launch Display settings
+        self.device.shell("am start -a android.settings.DISPLAY_SETTINGS")
+        time.sleep(2)
 
-    def teardown_class(self):
-        """Reset to 30s timeout using the manager’s teardown."""
-        logging.info("===== Starting Teardown =====")
-        self.manager.teardown_test(default_timeout_ms=30000)
-        logging.info("===== Teardown Completed =====")
+        # Scroll and click the "Screen timeout" option
+        if self.device(textContains="Screen timeout").exists(timeout=5):
+            self.device(textContains="Screen timeout").click()
+            time.sleep(1)
+        else:
+            logging.warning("⚠️ 'Screen timeout' option not found in Display Settings.")
+            return
+
+        # Select the timeout option
+        if self.device(textContains=timeout_label).exists(timeout=3):
+            self.device(textContains=timeout_label).click()
+            logging.info(f"✅ Selected timeout: {timeout_label}")
+        else:
+            logging.warning(f"⚠️ Timeout option '{timeout_label}' not found.")
+
+    # ------------------------------------------------------
+    # VALIDATION PHASE
+    # ------------------------------------------------------
+    def verify_timeout(self, expected_ms: int) -> bool:
+        """Verify if the current timeout matches the expected value."""
+        current_value = self.device.shell("settings get system screen_off_timeout").strip()
+        logging.info(f"📋 Current timeout setting: {current_value} ms (Expected: {expected_ms} ms)")
+
+        if current_value == str(expected_ms):
+            logging.info("✅ Timeout value verified successfully.")
+            return True
+        else:
+            logging.error("❌ Timeout value mismatch.")
+            return False
+
+    # ------------------------------------------------------
+    # TEARDOWN PHASE
+    # ------------------------------------------------------
+    def teardown_test(self) -> None:
+        """Restore the original screen timeout setting."""
+        if self.initial_timeout:
+            logging.info(f"Restoring original timeout: {self.initial_timeout}")
+            self.device.shell(f"settings put system screen_off_timeout {self.initial_timeout}")
+        else:
+            logging.warning("⚠️ No initial timeout value recorded.")
+        logging.info("🧹 Test teardown completed.")
 
 
-# ---------------- Main Runner ----------------
-if __name__ == "__main__":
-    test_runner.main()
+# ------------------------------------------------------
+# Factory Helper
+# ------------------------------------------------------
+def create_timeout_test(serial: str, coords: Dict[str, Tuple[int, int]]) -> TimeoutTestManager:
+    """
+    Factory function to create TimeoutTestManager instance.
+
+    Args:
+        serial (str): Device serial number
+        coords (dict): Coordinate map
+    """
+    return TimeoutTestManager(serial, coords)
