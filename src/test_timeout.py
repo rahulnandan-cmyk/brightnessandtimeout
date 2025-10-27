@@ -11,40 +11,25 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
 from mobly import asserts, base_test, test_runner
 from mobly.controllers import android_device
-from utils.screen_timeout_utils import create_timeout_test
+from utils.screen_timeout_utils import TimeoutTestManager
 
 
 class ScreenTimeoutTest(base_test.BaseTestClass):
     """Test to validate sequential screen timeout settings via UI."""
 
     def setup_class(self):
-        """Initialize device and coordinates."""
+        """Initialize device."""
         # Register Android device
         self.ads = self.register_controller(android_device)
         self.ad = self.ads[0]
-
-        # Define all UI coordinates (adjust per DUT resolution if needed)
-        self.coords = {
-            "win_button": (20, 1055),
-            "settings": (296, 577),
-            "display": (242, 955),
-            "screen_timeout": (56, 520),
-            "15_seconds": (83, 252.8),
-            "30_seconds": (83, 312),
-            "1_minute": (83, 371.2),
-            "2_minutes": (83, 430.4),
-            "5_minutes": (83, 489.6),
-            "10_minutes": (83, 548.8),
-            "30_minutes": (83, 616),
-        }
 
         # Create timeout test manager
         self.timeout_manager = None
 
     def setup_test(self):
         """Initialize per-test setup."""
-        # Create test manager with our parameters
-        self.timeout_manager = create_timeout_test(self.ad, self.coords)
+        # Create test manager
+        self.timeout_manager = TimeoutTestManager(self.ad)
 
         # Setup test environment
         if not self.timeout_manager.setup_test():
@@ -54,14 +39,15 @@ class ScreenTimeoutTest(base_test.BaseTestClass):
         """Sequentially set and verify all timeout options."""
         logging.info("Starting sequential timeout tests")
 
+        # Format: (label_text, expected_ms, wait_seconds)
         timeout_configs = [
-            ("15_seconds", 15000, 20, "15 seconds"),
-            ("30_seconds", 30000, 35, "30 seconds"),
-            ("1_minute", 60000, 0, "1 minute"),
-            ("2_minutes", 120000, 0, "2 minutes"),
-            ("5_minutes", 300000, 0, "5 minutes"),
-            ("10_minutes", 600000, 0, "10 minutes"),
-            ("30_minutes", 1800000, 0, "30 minutes"),
+            ("15 seconds", 15000, 20),
+            ("30 seconds", 30000, 35),
+            ("1 minute", 60000, 0),
+            ("2 minutes", 120000, 0),
+            ("5 minutes", 300000, 0),
+            ("10 minutes", 600000, 0),
+            ("30 minutes", 1800000, 0),
         ]
 
         # Execute the timeout tests
