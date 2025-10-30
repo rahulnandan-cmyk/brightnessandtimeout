@@ -17,9 +17,6 @@ class TimeoutTestManager:
         self.d = u2.connect(ad.serial)
         self.initial_timeout = None
 
-    # ---------------------------------------------------
-    # Test Setup / Teardown
-    # ---------------------------------------------------
     def setup_test(self) -> bool:
         """Prepare device: wake up, disable stay-awake, and verify launcher."""
         logging.info("=" * 60)
@@ -29,7 +26,7 @@ class TimeoutTestManager:
         try:
             self.ad.adb.shell("settings put global stay_on_while_plugged_in 0")
             self._wake_up_device()
-            self.d.press("home")
+            self._ensure_home_screen()
             time.sleep(2)
 
             current_pkg = self.d.info.get("currentPackageName", "")
@@ -50,8 +47,9 @@ class TimeoutTestManager:
         try:
             logging.info("Resetting screen timeout to default (30s)...")
             self._wake_up_device()
-            self._open_timeout_settings()
+            self._ensure_home_screen()
 
+            # Use ADB to directly set timeout to 30 seconds
             # Try selecting "30 seconds"
             if self.d(text="30 seconds").exists:
                 self.d(text="30 seconds").click()
@@ -70,9 +68,6 @@ class TimeoutTestManager:
         except Exception as e:
             logging.error("Teardown failed: %s", e, exc_info=True)
 
-    # ---------------------------------------------------
-    # Utility Methods
-    # ---------------------------------------------------
     def _wake_up_device(self):
         """Wake device and dismiss lockscreen."""
         logging.info("Waking up device...")
@@ -84,7 +79,8 @@ class TimeoutTestManager:
         """Get current screen timeout (ms)."""
         try:
             result = self.ad.adb.shell("settings get system screen_off_timeout")
-            result_str = result.decode('utf-8').strip() if isinstance(result, bytes) else str(result).strip()
+            result_str = result.decode('utf-8').strip() \
+                if isinstance(result, bytes) else str(result).strip()
             return int(result_str) if result_str.isdigit() else 0
         except Exception as e:
             logging.error("Failed to get timeout: %s", e)
@@ -100,9 +96,6 @@ class TimeoutTestManager:
             logging.error("Failed to check screen state: %s", e)
             return False
 
-    # ---------------------------------------------------
-    # Navigation
-    # ---------------------------------------------------
     def _open_timeout_settings(self):
         """Navigate to Settings -> Display -> Screen timeout."""
         logging.info("Navigating to Screen Timeout settings...")
@@ -132,9 +125,6 @@ class TimeoutTestManager:
 
         time.sleep(2)
 
-    # ---------------------------------------------------
-    # Test Logic
-    # ---------------------------------------------------
     def test_sequential_timeouts(self, timeout_labels: List[Tuple[str, int, int]]):
         """
         Sequentially test timeout options via UIAutomator2.
@@ -168,7 +158,7 @@ class TimeoutTestManager:
                 else:
                     logging.info(f"Timeout set correctly to {expected_ms} ms")
 
-                # Optional screen-off test
+                # screen-off test
                 if wait_sec > 0:
                     logging.info(f"Waiting {wait_sec}s for screen-off verification...")
                     time.sleep(wait_sec)
@@ -184,7 +174,8 @@ class TimeoutTestManager:
                 logging.error(f"Error testing timeout '{label}': {e}", exc_info=True)
 
 
-def create_timeout_test(ad: android_device.AndroidDevice, coords: Dict[str, Tuple[int, int]] = None) -> TimeoutTestManager:
+def create_timeout_test(ad: android_device.AndroidDevice,
+                        coords: Dict[str, Tuple[int, int]] = None) -> TimeoutTestManager:
     """Factory function to create a TimeoutTestManager instance.
 
     Args:
