@@ -68,6 +68,22 @@ class TimeoutTestManager:
         except Exception as e:
             logging.error("Teardown failed: %s", e, exc_info=True)
 
+    def _ensure_home_screen(self):
+        """Press HOME until launcher is visible."""
+        logging.info("Ensuring Home screen...")
+
+        for _ in range(3):  # Retry 3 times
+            self.d.press("home")
+            time.sleep(1)
+
+            pkg = self.d.info.get("currentPackageName", "")
+            if "launcher" in pkg or "home" in pkg:
+                logging.info(f"Home screen detected: {pkg}")
+                return
+
+        raise RuntimeError("Home screen not detected")
+
+
     def _wake_up_device(self):
         """Wake device and dismiss lockscreen."""
         logging.info("Waking up device...")
