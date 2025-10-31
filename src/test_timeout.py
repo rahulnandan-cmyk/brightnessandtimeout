@@ -11,6 +11,8 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
 from mobly import asserts, base_test, test_runner
 from mobly.controllers import android_device
+
+
 from utils.screen_timeout_utils import TimeoutTestManager
 
 

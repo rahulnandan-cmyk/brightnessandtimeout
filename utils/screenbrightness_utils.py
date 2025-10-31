@@ -2,14 +2,22 @@
 # utils/screenbrightness_utils.py
 import logging
 import time
+import uiautomator2 as u2
 from typing import Tuple, List, Optional, Dict, Any
+
+from  mobly.controllers import  android_device
 
 class DisplayTestManager:
     """Manages display test setup, execution, and teardown"""
-
-    def __init__(self, ad, coordinates: Dict[str, Tuple[int, int]]):
+    
+    # Keywords for robust navigation in settings
+    DISPLAY_LABELS = [
+        "Display", "Screen", "Screen & display", "Display & brightness", "Display settings"
+    ]
+    
+    def __init__(self, ad: android_device.AndroidDevice):
         self.ad = ad
-        self.coords = coordinates
+        self.d = u2.connect(ad.serial)
         self.initial_brightness = None
         self.final_brightness = None
 
@@ -22,47 +30,34 @@ class DisplayTestManager:
         try:
             # Wake up device
             self._wake_up_device_simple()
-
-            # Navigate to display settings
-            self._navigate_to_display_settings()
-
+            self._enusre_home_screen()
             logging.info("Test setup completed successfully")
             return True
-
         except Exception as e:
-            logging.error("Test setup failed: %s", e)
+            logging.error("Test setup failed: %s", e, exc_info=True)
             return False
 
     def teardown_test(self) -> None:
-        """Go back to home screen"""
+        """Go back to home screen and ensure cleanup"""
         try:
-            logging.info("Returning to home screen")
+            logging.info("Starting teardown - closing dialogs and returning to home")
             self.ad.adb.shell("input keyevent KEYCODE_HOME")
+            self.d.press("home")
             time.sleep(2)
         except Exception as e:
             logging.warning("Home command failed: %s", e)
 
-    def _wake_up_device_simple(self) -> bool:
+    def _ensure_home_screen(self):
+        """Ensure the device is on the home screen."""
+        pass
+
+    def _wake_up_device(self) -> None:
         """Wake up device with basic commands"""
         logging.info("Waking up device...")
+        self.ad.adb.shell("input keyevent KEYCODE_WAKEUP")
+        self.ad.adb.shell("wm dismiss-keyguard")
+        time.sleep(2)
 
-        try:
-            commands = [
-                "input keyevent KEYCODE_WAKEUP",
-                "input keyevent KEYCODE_MENU",
-                "input keyevent KEYCODE_WAKEUP",
-            ]
-
-            for cmd in commands:
-                self.ad.adb.shell(cmd)
-                time.sleep(1)
-
-            logging.info("Wake-up commands sent successfully")
-            return True
-
-        except Exception as e:
-            logging.error("Wake-up failed: %s", e)
-            return False
 
     def _navigate_to_display_settings(self) -> None:
         """Navigate to display settings using coordinates"""
@@ -194,20 +189,6 @@ class DisplayTestManager:
             logging.error("Failed to check screen state: %s", e)
             return False
 
-    def _select_brightness_slider(self) -> bool:
-        """Properly select the brightness slider for arrow key control"""
-        logging.info("Selecting brightness slider for adjustment...")
-        try:
-            # Method 1: Direct tap on brightness option to open slider dialog
-            logging.info("Method 1: Tapping brightness option")
-            x, y = self.coords["brightness"]
-            self.ad.adb.shell(f'input tap {x} {y}')
-            time.sleep(2)
-            return True
-        except Exception as e:
-            logging.error("Failed to select brightness slider: %s", e)
-            return False
-
     def _adjust_brightness_with_retry(self, right_presses: int, left_presses: int, delay: float) \
             -> Tuple[int, int, List[tuple]]:
         """Try different methods to adjust brightness"""
@@ -280,46 +261,14 @@ class DisplayTestManager:
 
         return self.initial_brightness, self.final_brightness, brightness_values
 
-    def execute_timeout_test(self, timeout_key: str, expected_ms: int, wait_sec: int = 0) -> bool:
-        """Execute single timeout test"""
-        logging.info("Testing timeout: %s (expected: %d ms)", timeout_key, expected_ms)
+    def test_brightness_adjustment(self, right_presses: int = 10, left_presses: int = 10,
+                                   delay: float = 1.0):
+        """Sequentially adjusts brightness up and down using uiautomator"""
+    logging.info("=" * 60)
+    logging.info("Starting  Brightness Test")
+    logging.info("=" * 60)
 
-        try:
-            # Navigate to timeout settings
-            self._navigate_to_timeout_settings()
 
-            # Select the timeout option
-            logging.info("Selecting timeout: %s", timeout_key)
-            x, y = self.coords[timeout_key]
-            self.ad.adb.shell(f'input tap {x} {y}')
-            time.sleep(2)
-
-            # Verify setting
-            actual_ms = self._get_timeout()
-            logging.info("Current timeout: %d ms", actual_ms)
-
-            if actual_ms != expected_ms:
-                logging.error("Timeout mismatch! Expected: %d, Actual: %d", expected_ms, actual_ms)
-                return False
-
-            # Screen-off verification for short durations
-            if wait_sec > 0 and wait_sec <= 60:
-                logging.info("Waiting %d seconds for screen-off check...", wait_sec)
-                time.sleep(wait_sec)
-                if self._is_screen_off():
-                    logging.info("Screen turned off as expected for %s", timeout_key)
-                    # Wake up device for next test
-                    self._wake_up_device_simple()
-                else:
-                    logging.warning("Screen still ON after %d seconds for %s", wait_sec, timeout_key)
-            else:
-                logging.info("Skipping screen-off check for long timeout: %s", timeout_key)
-
-            return True
-
-        except Exception as e:
-            logging.error("Timeout test failed for %s: %s", timeout_key, e)
-            return False
 
 
 # Factory function

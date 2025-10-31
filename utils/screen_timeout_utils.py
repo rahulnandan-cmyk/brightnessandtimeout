@@ -14,6 +14,22 @@ class TimeoutTestManager:
         self.ad = ad
         self.d = u2.connect(ad.serial)
 
+        try:
+            commands = [
+                "input keyevent KEYCODE_WAKEUP",
+                "input keyevent KEYCODE_MENU",
+                "input keyevent KEYCODE_WAKEUP",
+            ]
+
+            for cmd in commands:
+                self.ad.adb.shell(cmd)
+                time.sleep(1)
+
+            logging.info("Wake-up commands sent successfully")
+
+        except Exception as e:
+            logging.error("Wake-up failed: %s", e)
+
     def setup_test(self) -> bool:
         logging.info("=" * 60)
         logging.info("Starting Timeout Test Setup")
@@ -183,7 +199,7 @@ class TimeoutTestManager:
 
         time.sleep(2)
 
-    def test_sequential_timeouts(self, timeout_labels: List[Tuple[str, int, int, bool]]):
+    def test_sequential_timeouts(self, timeout_labels: List[Tuple[str, int, int]]):
         """
         Test sequential timeout options.
 
@@ -195,16 +211,12 @@ class TimeoutTestManager:
                 - skip: If True, skip this test with a message
         """
         for item in timeout_labels:
-            # Unpack the 4-tuple but use wait_sec for the skip condition
-            label, expected_ms, wait_sec, _ = item
+            # Unpack the 3-tuple but use wait_sec for the skip condition
+            label, expected_ms, wait_sec = item
 
             logging.info("=" * 60)
             logging.info(f"Testing timeout option: {label}")
             logging.info("=" * 60)
-
-            # NOTE: We use wait_sec == 0 to skip the screen-off verification,
-            # NOT the entire test setup/click. The entire test only skips
-            # if we explicitly added logic here to check if expected_ms is 0 (or similar).
 
             try:
                 self._open_timeout_settings()
@@ -216,6 +228,8 @@ class TimeoutTestManager:
                     logging.warning(f"Timeout option '{label}' not found. Available: {options}")
                     continue
                 time.sleep(2)
+
+                # 1. Verify system setting is correct
                 current_timeout = self._get_current_timeout()
                 if current_timeout != expected_ms:
                     logging.error(f"Timeout mismatch! Expected {expected_ms},"
@@ -223,7 +237,7 @@ class TimeoutTestManager:
                 else:
                     logging.info(f"Timeout set correctly to {expected_ms} ms")
 
-                # The primary change: only run screen-off verification if wait_sec > 0
+                # 2. Verify screen-off behavior if wait_sec > 0
                 if wait_sec > 0:
                     logging.info(f"Waiting {wait_sec}s for screen-off verification...")
                     time.sleep(wait_sec)
