@@ -51,7 +51,8 @@ class TimeoutTestManager:
                     logging.info(f"Home screen detected: {pkg}")
                     break
                 else:
-                    logging.warning(f"Home screen not detected yet, attempt {attempt+1}: current pkg {pkg}")
+                    logging.warning(f"Home screen not detected yet, "
+                                    f"attempt {attempt+1}: current pkg {pkg}")
             else:
                 logging.warning("Could not confirm home screen, forcing app stop")
                 self.ad.adb.shell("am force-stop com.android.settings")
@@ -68,7 +69,8 @@ class TimeoutTestManager:
             if current_timeout == default_timeout_ms:
                 logging.info("Timeout reset to 30 seconds successfully")
             else:
-                logging.warning(f"Timeout reset mismatch: got {current_timeout}ms, expected {default_timeout_ms}ms")
+                logging.warning(f"Timeout reset mismatch: got {current_timeout}ms, "
+                                f"expected {default_timeout_ms}ms")
 
         except Exception as e:
             logging.error("Teardown failed: %s", e, exc_info=True)
@@ -94,7 +96,8 @@ class TimeoutTestManager:
     def _get_current_timeout(self) -> int:
         try:
             result = self.ad.adb.shell("settings get system screen_off_timeout")
-            result_str = result.decode('utf-8').strip() if isinstance(result, bytes) else str(result).strip()
+            result_str = result.decode('utf-8').strip()\
+                if isinstance(result, bytes) else str(result).strip()
             return int(result_str) if result_str.isdigit() else 0
         except Exception as e:
             logging.error("Failed to get timeout: %s", e)
@@ -192,20 +195,16 @@ class TimeoutTestManager:
                 - skip: If True, skip this test with a message
         """
         for item in timeout_labels:
-            # Support both 3-tuple (old format) and 4-tuple (new format with skip)
-            if len(item) == 4:
-                label, expected_ms, wait_sec, skip = item
-            else:
-                label, expected_ms, wait_sec = item
-                skip = False
+            # Unpack the 4-tuple but use wait_sec for the skip condition
+            label, expected_ms, wait_sec, _ = item
 
             logging.info("=" * 60)
             logging.info(f"Testing timeout option: {label}")
             logging.info("=" * 60)
 
-            if skip:
-                logging.info(f"SKIPPED: {label} - Skipping as per test configuration")
-                continue
+            # NOTE: We use wait_sec == 0 to skip the screen-off verification,
+            # NOT the entire test setup/click. The entire test only skips
+            # if we explicitly added logic here to check if expected_ms is 0 (or similar).
 
             try:
                 self._open_timeout_settings()
@@ -219,9 +218,12 @@ class TimeoutTestManager:
                 time.sleep(2)
                 current_timeout = self._get_current_timeout()
                 if current_timeout != expected_ms:
-                    logging.error(f"Timeout mismatch! Expected {expected_ms}, got {current_timeout}")
+                    logging.error(f"Timeout mismatch! Expected {expected_ms},"
+                                  f" got {current_timeout}")
                 else:
                     logging.info(f"Timeout set correctly to {expected_ms} ms")
+
+                # The primary change: only run screen-off verification if wait_sec > 0
                 if wait_sec > 0:
                     logging.info(f"Waiting {wait_sec}s for screen-off verification...")
                     time.sleep(wait_sec)
@@ -230,6 +232,9 @@ class TimeoutTestManager:
                         self._wake_up_device()
                     else:
                         logging.warning(f"Screen still ON after {wait_sec}s ({label})")
+                else:
+                    logging.info(f"Screen-off verification skipped (wait_sec=0) for {label}")
+
                 # Return to home after each test iteration
                 self.d.press("home")
                 time.sleep(1)
