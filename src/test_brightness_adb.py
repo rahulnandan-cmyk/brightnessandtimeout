@@ -11,19 +11,11 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 from mobly import asserts, base_test, test_runner
 from mobly.controllers import android_device
 
-from utils.screenbrightness_utils import create_display_test
+from utils.screenbrightness_utils import create_brightness_test
 
 
 class DisplaySettingsTest(base_test.BaseTestClass):
     """Test to validate display settings using common utils"""
-
-    # Test parameters - just define these!
-    COORDINATES = {
-        "win_button": (20, 1055),
-        "settings": (296, 577),
-        "display": (242, 955),
-        "brightness": (178, 321),
-    }
 
     BRIGHTNESS_TEST_PARAMS = {
         "right_presses": 10,
@@ -45,21 +37,22 @@ class DisplaySettingsTest(base_test.BaseTestClass):
 
         try:
             # Create test manager with our parameters
-            self.test_manager = create_display_test(self.ad, self.COORDINATES)
+            self.test_manager = create_brightness_test(self.ad)
 
             # Setup (wake device + navigate to settings)
             if not self.test_manager.setup_test():
                 asserts.fail("Test setup failed")
 
             # Execute brightness test with our parameters
-            initial, final, values = self.test_manager.execute_brightness_test(
+            initial, final = self.test_manager.test_brightness_adjustment(
                 **self.BRIGHTNESS_TEST_PARAMS
             )
 
-            # Simple assertion
+            # Validate brightness change
             asserts.assert_true(
-                initial != final,
-                f"Brightness should change. Initial: {initial}, Final: {final}"
+                initial == final,
+                f"Brightness failed to return to its original level after adjustments."
+                f" Initial: {initial}, Final: {final}"
             )
 
             logging.info("TEST PASSED: Brightness successfully adjusted")

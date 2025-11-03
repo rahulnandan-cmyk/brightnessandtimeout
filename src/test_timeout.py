@@ -45,7 +45,7 @@ class ScreenTimeoutTest(base_test.BaseTestClass):
         # Set skip=True to skip that particular timeout test
         timeout_configs = [
             ("15 seconds", 15000, 20),
-            ("30 seconds", 30000, 0),
+            ("30 seconds", 30000, 35),
             ("1 minute", 60000, 0),
             ("2 minutes", 120000, 0),
             ("5 minutes", 300000, 0),
