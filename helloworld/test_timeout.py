@@ -13,7 +13,7 @@ from mobly import asserts, base_test, test_runner
 from mobly.controllers import android_device
 
 
-from utils.screen_timeout_utils import TimeoutTestManager
+from helloworld.screen_timeout_utils import TimeoutTestManager
 
 
 class ScreenTimeoutTest(base_test.BaseTestClass):

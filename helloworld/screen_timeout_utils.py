@@ -1,7 +1,7 @@
 import logging
 import time
 import uiautomator2 as u2
-from typing import Tuple, List, Dict
+from typing import Tuple, List
 from mobly import asserts
 from mobly.controllers import android_device
 

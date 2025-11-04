@@ -4,8 +4,6 @@
 import logging
 import time
 import uiautomator2 as u2
-from typing import Tuple, List, Dict
-from mobly import asserts
 from mobly.controllers import android_device
 
 class BrightnessTestManager:
@@ -145,7 +143,7 @@ class BrightnessTestManager:
         """Sequentially adjusts brightness up and down using coordinate-free DPAD keys."""
 
         logging.info("=" * 60)
-        logging.info(f"Starting Brightness Adjustment Test")
+        logging.info("Starting Brightness Adjustment Test")
         logging.info("=" * 60)
 
         try:
