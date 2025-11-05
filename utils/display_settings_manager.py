@@ -1,56 +1,45 @@
 #!/usr/bin/env python3
-# display_settings_manager.py
+"""Module for managing and testing Android Display Settings (Brightness and Timeout)."""
 import logging
 import time
+from typing import List, Tuple
+
 import uiautomator2 as u2
-from typing import Tuple, List
 from mobly import asserts
 from mobly.controllers import android_device
-
+from uiautomator2 import Device
 
 class DisplaySettingsManager:
     """
     Manages all display-related test setup, execution (Brightness and Timeout),
     and teardown using UIAutomator2 and ADB shell commands.
-
-    :param ad: The mobly Android controller instance
-
-    **Attributes**
-        - HOME_KEYWORDS(List[str]): Keywords used to identify the Android home screen package.
-        - DISPLAY_LABELS(List[str]): UI labels used to locate the main display settings menu.
-        - BRIGHTNESS_LABELS(List[str]): UI labels used to locate the brightness settings menu.
-        - DEFAULT_TIMEOUT_MS(int): Default screen off timeout value in milliseconds (3000ms).
-        - ad (android_device.AndroidDevice): The Mobly Android device handle.
-        - d (uiautomator2.client): The UIautomator2 client instance connected to the device.
-
-
-    **Methods**
-        - setup_test(): prepares the device for testing.
-        - teardown_test(): Reset settings and cleans up the device state.
-        - execute_brightness_test(): Performs the brightness adjustment cycle test.
-        - test_sequential_timeouts(): Tests multiple screen off timeout values.
     """
 
     # Constants
     HOME_KEYWORDS = ["launcher", "home"]
-    DISPLAY_LABELS = ["Display", "Screen", "Screen & display", "Display & brightness",
-                      "Display settings"]
+    DISPLAY_LABELS = [
+        "Display",
+        "Screen",
+        "Screen & display",
+        "Display & brightness",
+        "Display settings",
+    ]
     BRIGHTNESS_LABELS = ["Brightness level", "Adaptive brightness", "Brightness"]
     DEFAULT_TIMEOUT_MS = 30000
+    SETTINGS_PACKAGE = "com.android.settings"
 
     def __init__(self, ad: android_device.AndroidDevice):
         self.ad = ad
-        # Type hint added for self.d
         self.d: Device = u2.connect(ad.serial)
 
-        # Initial wake-up to ensure device is response
+        # Initial wake-up to ensure device is responsive
         try:
             for cmd in ["input keyevent KEYCODE_WAKEUP", "input keyevent KEYCODE_MENU"]:
                 self.ad.adb.shell(cmd)
                 time.sleep(0.5)
             logging.info("Initial wake-up commands sent successfully!")
         except Exception as e:
-            logging.error(f"Initial device wake-up failed: {e}")
+            logging.error("Initial device wake-up failed: %s", e)
 
     def setup_test(self) -> bool:
         """
@@ -75,9 +64,8 @@ class DisplaySettingsManager:
             logging.info("Test setup completed successfully")
             return True
         except Exception as e:
-            logging.error(f"Test setup failed: {e}", exc_info=True)
+            logging.error("Test setup failed: %s", e, exc_info=True)
             return False
-
 
     def teardown_test(self) -> None:
         """
@@ -90,12 +78,15 @@ class DisplaySettingsManager:
             # Use _close_settings_dialogs for cleanup
             self._close_settings_dialogs()
 
-            # Reset timeout to default
-            logging.info(f"Resetting timeout to {self.DEFAULT_TIMEOUT_MS // 1000} seconds...")
-            self.ad.adb.shell(f"settings put system screen_off_timeout {self.DEFAULT_TIMEOUT_MS}")
+            logging.info(
+                "Resetting timeout to %d seconds...", self.DEFAULT_TIMEOUT_MS // 1000
+            )
+            self.ad.adb.shell(
+                f"settings put system screen_off_timeout {self.DEFAULT_TIMEOUT_MS}"
+            )
 
         except Exception as e:
-            logging.error(f"Teardown failed:{e}", exc_info=True)
+            logging.error("Teardown failed: %s", e, exc_info=True)
 
     def _ensure_home_screen(self):
         """Forces the device to the home screen using multiple home presses."""
@@ -105,14 +96,15 @@ class DisplaySettingsManager:
             self.d.press("home")
             time.sleep(1)
             pkg = self.d.info.get("currentPackageName", "")
-            logging.info(f"Current package: {pkg}")
+            logging.info("Current package: %s", pkg)
             if any(keyword in pkg.lower() for keyword in self.HOME_KEYWORDS):
-                logging.info(f"Home screen detected:{pkg}")
+                logging.info("Home screen detected: %s", pkg)
                 return
 
         # 'pkg' is guaranteed to exist due to initialization or last assignment.
-        raise RuntimeError(f"Home Screen not detected after 3 attempts."
-                           f"package: {pkg}")
+        raise RuntimeError(
+            f"Home Screen not detected after 3 attempts. package: {pkg}"
+        )
 
     def _wake_up_device(self):
         """Wakes up the device and dismisses the keyguard"""
@@ -132,7 +124,8 @@ class DisplaySettingsManager:
         self.d.press("home")
         time.sleep(1)
 
-    def _scroll_and_click_setting(self, setting_labels: List[str], timeout: int = 2) -> None:
+    def _scroll_and_click_setting(
+            self, setting_labels: List[str], timeout: int = 2) -> None:
         """
         Scrolls the current view to find an element matching any of the given
         labels, clicks it, and raises an error if none are found.
@@ -141,7 +134,9 @@ class DisplaySettingsManager:
             setting_labels: A LIST of possible UI texts to search for (e.g., ["Display", "Screen"]).
             timeout: Seconds to sleep after clicking.
         """
-        logging.info(f"Attempting to find and click settings related to  '{setting_labels}'...")
+        logging.info(
+            "Attempting to find and click settings related to '%s'...", setting_labels
+        )
 
         found_label = None
 
@@ -154,33 +149,46 @@ class DisplaySettingsManager:
                 # 2. Check if the element now exists in the viewport and click it.
             if self.d(textContains=label).exists:
                 self.d(textContains=label).click()
-                logging.info(f"Successfully clicked setting with label: '{label}'.")
+                logging.info("Successfully clicked setting with label: '%s'.", label)
                 found_label = label
                 break
 
         # 3. Handle total failure if no label was found after all attempts.
         if found_label is None:
             # Error handling fallback: Collect visible options for debugging.
-            options = [el.text for el in self.d.xpath('//*[@text]').all()]
-            logging.error(f"None of the required settings ({setting_labels}) "
-                          f"were found! Options: {options}", exc_info=True)
-            raise RuntimeError(f"Could not find any of the required settings: {setting_labels}")
+            options = [el.text for el in self.d.xpath("//*[@text]").all()]
+            logging.error(
+                "None of the required settings (%s) were found! Options: %s",
+                setting_labels,
+                options,
+                exc_info=True,
+            )
+            raise RuntimeError(
+                f"Could not find any of the required settings: {setting_labels}"
+            )
 
         time.sleep(timeout)
 
+    def _access_settings_from_launcher(self) -> None:
+        """Starts the main Android Settings application."""
+        logging.info("Starting Android Settings application...")
+        # Use the class constant for consistency
+        self.d.app_start(self.SETTINGS_PACKAGE)
+        time.sleep(3)
 
     def _navigate_to_display_menu(self):
         """Navigates to the main Display Settings Menu."""
         logging.info("Navigating to Display Settings Menu...")
-        self.d.app_start("com.android.settings")
-        time.sleep(3)
+
+        # New Step: Start Settings App using the new helper method
+        self._access_settings_from_launcher()
 
         found_display = False
         # 1. Try to find element if its visible without scrolling
         for label in self.DISPLAY_LABELS:
             if self.d(text=label).exists:
                 self.d(text=label).click()
-                logging.info(f"Opened '{label}' settings")
+                logging.info("Opened '%s' settings", label)
                 found_display = True
                 break
 
@@ -191,7 +199,6 @@ class DisplaySettingsManager:
 
         time.sleep(2)
 
-
     def _navigate_to_brightness_settings(self):
         """Navigates from the Display menu to the brightness slider control."""
         self._navigate_to_display_menu()
@@ -201,7 +208,7 @@ class DisplaySettingsManager:
         for label in self.BRIGHTNESS_LABELS:
             if self.d(text=label).exists:
                 self.d(text=label).click()
-                logging.info(f"Clicked brightness options: '{label}'")
+                logging.info("Clicked brightness options: '%s'", label)
                 found_brightness = True
                 break
 
@@ -225,15 +232,19 @@ class DisplaySettingsManager:
         """Get current brightness using ADB shell"""
         try:
             result = self.ad.adb.shell("settings get system screen_brightness")
-            result_str = result.decode('utf-8').strip() \
-                if isinstance(result, bytes) else str(result).strip()
+            result_str = (
+                result.decode("utf-8").strip()
+                if isinstance(result, bytes)
+                else str(result).strip()
+            )
             return int(result_str) if result_str.isdigit() else -1
         except Exception as e:
-            logging.error(f"Failed to get brightness:{e}")
+            logging.error("Failed to get brightness: %s", e)
             return -1
 
-    def execute_brightness_test(self, right_press: int = 10, left_press: int = 10,
-                                delay: float = 1.0) -> Tuple[int, int]:
+    def execute_brightness_test(
+            self, right_press: int = 10, left_press: int = 10, delay: float = 1.0
+    ) -> Tuple[int, int]:
         """
         Adjusts brightness up and down using DPAD and returns initial/final values
 
@@ -248,47 +259,49 @@ class DisplaySettingsManager:
             self._navigate_to_brightness_settings()
 
             initial_brightness = self._get_brightness()
-            logging.info(f"Initial brightness: {initial_brightness}")
+            logging.info("Initial brightness: %d", initial_brightness)
 
             # 1. Increasing brightness.
-            logging.info(f"Increasing brightness ({right_press} steps)")
+            logging.info("Increasing brightness (%d steps)", right_press)
             for i in range(right_press):
                 self.ad.adb.shell("input keyevent KEYCODE_DPAD_RIGHT")
                 time.sleep(delay)
                 curr = self._get_brightness()
-                logging.info(f"Right {i+1}/{right_press} -> Brightness: {curr}")
+                logging.info("Right %d/%d -> Brightness: %d", i + 1, right_press, curr)
 
             # 2. Decreasing Brightness
-            logging.info(f"Decreasing brightness ({left_press} steps)")
+            logging.info("Decreasing brightness (%d steps)", left_press)
             for i in range(left_press):
                 self.ad.adb.shell("input keyevent KEYCODE_DPAD_LEFT")
                 time.sleep(delay)
                 curr = self._get_brightness()
-                logging.info(f"Left {i+1}/{left_press} -> Brightness:{curr}")
+                logging.info("Left %d/%d -> Brightness: %d", i + 1, left_press, curr)
 
             final_brightness = self._get_brightness()
-            logging.info(f"Final Brightness: {final_brightness}")
+            logging.info("Final Brightness: %d", final_brightness)
 
-            self._close_settings_dialogs() # clean up the UI
+            self._close_settings_dialogs()  # clean up the UI
 
             # Returns two values: initial and final brightness for assertion
             return initial_brightness, final_brightness
-
         except Exception as e:
-            logging.error(f"Error during brightness test: {e}", exc_info=True)
-            self._close_settings_dialogs() # Ensure cleanup even on failure
+            logging.error("Error during brightness test: %s", e, exc_info=True)
+            self._close_settings_dialogs()  # Ensure cleanup even on failure
             raise
 
     def _get_current_timeout(self) -> int:
         """Retrieves the current screen off timeout value in millisecond via ADB"""
         try:
             result = self.ad.adb.shell("settings get system screen_off_timeout")
-            result_str = result.decode('utf-8').strip() \
-                if isinstance(result, bytes) else str(result).strip()
+            result_str = (
+                result.decode("utf-8").strip()
+                if isinstance(result, bytes)
+                else str(result).strip()
+            )
             return int(result_str) if result_str.isdigit() else 0
 
         except Exception as e:
-            logging.error(f"Failed to get timeout: {e}")
+            logging.error("Failed to get timeout: %s", e)
             return 0
 
     def _is_screen_off(self) -> bool:
@@ -299,7 +312,7 @@ class DisplaySettingsManager:
             return "Asleep" in state
 
         except Exception as e:
-            logging.error(f"Failed to check screen state: {e}")
+            logging.error("Failed to check screen state: %s", e)
             return False
 
     def test_sequential_timeouts(self, timeout_labels: List[Tuple[str, int, int]]):
@@ -315,7 +328,7 @@ class DisplaySettingsManager:
 
         for label, expected_ms, wait_sec in timeout_labels:
             logging.info("=" * 60)
-            logging.info(f"Testing timeout option: {label}")
+            logging.info("Testing timeout option: %s", label)
             logging.info("=" * 60)
 
             try:
@@ -323,11 +336,13 @@ class DisplaySettingsManager:
 
                 if self.d(text=label).exists:
                     self.d(text=label).click()
-                    logging.info(f"Selected timeout: {label}")
+                    logging.info("Selected timeout: %s", label)
                 else:
                     # Collects all available options.
-                    options = [el.text for el in self.d.xpath('//*[@text]').all()]
-                    logging.warning(f"Timeout option '{label}' not found. Available: {options} ")
+                    options = [el.text for el in self.d.xpath("//*[@text]").all()]
+                    logging.warning(
+                        "Timeout option '%s' not found. Available: %s ", label, options
+                    )
                     continue
 
                 time.sleep(2)
@@ -335,34 +350,73 @@ class DisplaySettingsManager:
                 # 1. Verify system setting is correct.
                 current_timeout = self._get_current_timeout()
                 if current_timeout != expected_ms:
-                    logging.error(f"Timeout Mismatch! Expected {expected_ms}, got {current_timeout}")
-                    asserts.fail(f"Timeout set incorrect for label {label}:"
-                                 f"Expected {expected_ms}ms, got {current_timeout}ms")
+                    logging.error(
+                        "Timeout Mismatch! Expected %d, got %d",
+                        expected_ms, current_timeout
+                    )
+                    asserts.fail(
+                        f"Timeout set incorrect for label {label}:"
+                        f"Expected {expected_ms}ms, got {current_timeout}ms"
+                    )
                 else:
-                    logging.info(f"Timeout set correctly to {expected_ms}ms")
+                    logging.info("Timeout set correctly to %dms", expected_ms)
 
                 # 2. Verify the screen-off behaviour.
                 if wait_sec > 0:
-                    logging.info(f"Waiting {wait_sec}s for screen-off verification...")
+                    logging.info("Waiting %ds for screen-off verification...", wait_sec)
                     time.sleep(wait_sec)
                     if self._is_screen_off():
-                        logging.info(f"Screen turned off as expected({label})")
+                        logging.info("Screen turned off as expected(%s)", label)
                         self._wake_up_device()
                     else:
-                        logging.warning(f"Screen still ON after ON {wait_sec}s ({label})")
-                        asserts.fail(f"Screen did not turn off after {wait_sec}s for timeout {label}.")
+                        logging.warning(
+                            "Screen still ON after ON %ds (%s)", wait_sec, label
+                        )
+                        asserts.fail(
+                            f"Screen did not turn off after {wait_sec}s for timeout {label}."
+                        )
                 else:
-                    logging.warning(f"Screen-off verification skipped (wait_sec=0) for ({label})")
+                    logging.warning(
+                        "Screen-off verification skipped (wait_sec=0) for (%s)", label
+                    )
                     self.d.press("home")
                     time.sleep(2)
 
             except Exception as e:
-                logging.error(f"Error testing timeout'{label}': {e}", exc_info=True)
+                logging.error("Error testing timeout '%s': %s", label, e, exc_info=True)
                 self.d.press("home")
                 time.sleep(2)
                 raise
+    #
+    # def access_settings_from_launcher(self) -> bool:
+    #     """Tests accessing the main Settings application from the app launcher."""
+    #
+    #     SETTINGS_PACKAGE = "com.android.settings"  # pylint: disable=invalid-name
+    #     logging.info("Attempting to launch the Android Settings application...")
+    #
+    #     try:
+    #         # self.d is the UI Automator client inside the manager
+    #         self.d.app_start(SETTINGS_PACKAGE)
+    #         time.sleep(3) # Wait for the app to fully load
+    #
+    #         current_pkg = self.d.info.get("currentPackageName", "")
+    #
+    #         if current_pkg == SETTINGS_PACKAGE:
+    #             logging.info("SUCCESS: Settings app launched successfully via launcher.")
+    #             return True
+    #
+    #         # Using lazy logging (%s) is preferred for performance
+    #         logging.error("FAILURE: Expected '%s', but found '%s'.", SETTINGS_PACKAGE, current_pkg)
+    #         return False
+    #
+    #     except Exception as err:
+    #         logging.error("Failed to launch Settings app: %s", err, exc_info=True)
+    #         return False
+
 
 # Factory function for mobly
-def create_display_settings_manager(ad: android_device.AndroidDevice) -> DisplaySettingsManager:
+def create_display_settings_manager(
+        ad: android_device.AndroidDevice,
+) -> DisplaySettingsManager:
     """Factory function to create a DisplaySettingsManager instance"""
     return DisplaySettingsManager(ad)
