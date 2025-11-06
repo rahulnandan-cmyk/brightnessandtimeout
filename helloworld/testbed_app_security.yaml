@@ -1,0 +1,9 @@
+# filename: testbed_app_security.yaml
+TestBeds:
+  - Name: LinuxAppSecurity_TestBed
+    Controllers: {}
+    TestParams:
+      terminal_app: gnome-terminal      # Terminal app to simulate Settings
+      gui_load_delay: 3                 # Seconds to wait for GUI to load
+      action_delay: 1                   # Seconds between UI actions
+    TestClass: AppSecurityTest

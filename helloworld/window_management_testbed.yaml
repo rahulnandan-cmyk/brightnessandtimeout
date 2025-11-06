@@ -1,0 +1,232 @@
+TestBeds:
+  # Basic configuration for single machine testing
+  - Name: LinuxDesktopTestbed
+    Controllers:
+      # No special controllers needed for local Linux window testing
+      
+    TestParams:
+      # Terminal application to test (can be changed based on your environment)
+      terminal_app: "gnome-terminal"
+      
+      # Window resize dimensions for testing
+      resize_configs:
+        - width: 800
+          height: 600
+        - width: 1000
+          height: 700
+        - width: 1200
+          height: 800
+      
+      # Window move positions for testing
+      move_positions:
+        - x: 100
+          y: 100
+        - x: 300
+          y: 200
+        - x: 500
+          y: 300
+      
+      # Timing configurations (in seconds)
+      timing:
+        launch_delay: 3
+        operation_delay: 1
+        verification_delay: 2
+        retry_delay: 1
+        max_retries: 10
+      
+      # Geometry verification tolerance (pixels)
+      geometry_tolerance: 50
+      
+      # Optional: Specific window search patterns
+      window_search_patterns:
+        - "gnome-terminal-server"
+        - "gnome-terminal"
+        - "terminal"
+      
+      # Test execution settings
+      test_settings:
+        cleanup_after_test: true
+        take_screenshots: false
+        screenshot_dir: "/tmp/window_test_screenshots"
+        verbose_logging: true
+
+  # Alternative testbed for different terminal applications
+  - Name: XTermTestbed
+    Controllers:
+      
+    TestParams:
+      terminal_app: "xterm"
+      
+      resize_configs:
+        - width: 800
+          height: 600
+      
+      move_positions:
+        - x: 100
+          y: 100
+      
+      timing:
+        launch_delay: 2
+        operation_delay: 1
+        verification_delay: 1
+        retry_delay: 1
+        max_retries: 10
+      
+      geometry_tolerance: 50
+      
+      window_search_patterns:
+        - "xterm"
+      
+      test_settings:
+        cleanup_after_test: true
+        take_screenshots: false
+        verbose_logging: true
+
+  # Testbed for Konsole (KDE terminal)
+  - Name: KonsoleTestbed
+    Controllers:
+      
+    TestParams:
+      terminal_app: "konsole"
+      
+      resize_configs:
+        - width: 800
+          height: 600
+      
+      move_positions:
+        - x: 100
+          y: 100
+      
+      timing:
+        launch_delay: 3
+        operation_delay: 1
+        verification_delay: 2
+        retry_delay: 1
+        max_retries: 10
+      
+      geometry_tolerance: 50
+      
+      window_search_patterns:
+        - "konsole"
+      
+      test_settings:
+        cleanup_after_test: true
+        take_screenshots: false
+        verbose_logging: true
+
+  # Testbed with multiple window configurations
+  - Name: MultiConfigTestbed
+    Controllers:
+      
+    TestParams:
+      terminal_app: "gnome-terminal"
+      
+      # Multiple resize test scenarios
+      resize_configs:
+        - width: 640
+          height: 480
+          name: "VGA"
+        - width: 800
+          height: 600
+          name: "SVGA"
+        - width: 1024
+          height: 768
+          name: "XGA"
+        - width: 1280
+          height: 720
+          name: "HD"
+        - width: 1920
+          height: 1080
+          name: "Full HD"
+      
+      # Grid positions for systematic testing
+      move_positions:
+        - x: 0
+          y: 0
+          name: "top-left"
+        - x: 500
+          y: 0
+          name: "top-center"
+        - x: 1000
+          y: 0
+          name: "top-right"
+        - x: 0
+          y: 400
+          name: "middle-left"
+        - x: 500
+          y: 400
+          name: "center"
+        - x: 1000
+          y: 400
+          name: "middle-right"
+      
+      timing:
+        launch_delay: 3
+        operation_delay: 1
+        verification_delay: 2
+        retry_delay: 1
+        max_retries: 15
+      
+      geometry_tolerance: 50
+      
+      window_search_patterns:
+        - "gnome-terminal-server"
+        - "gnome-terminal"
+        - "terminal"
+      
+      test_settings:
+        cleanup_after_test: true
+        take_screenshots: true
+        screenshot_dir: "/tmp/window_test_screenshots"
+        verbose_logging: true
+        
+      # Optional: Screen resolution info for position validation
+      screen_info:
+        width: 1920
+        height: 1080
+        
+      # Optional: Requirements validation
+      required_tools:
+        - "wmctrl"
+        - "xdotool"
+        
+      # Optional: Environment variables
+      environment:
+        DISPLAY: ":0"
+
+  # CI/CD friendly testbed with minimal delays
+  - Name: CITestbed
+    Controllers:
+      
+    TestParams:
+      terminal_app: "gnome-terminal"
+      
+      resize_configs:
+        - width: 800
+          height: 600
+      
+      move_positions:
+        - x: 100
+          y: 100
+      
+      timing:
+        launch_delay: 2
+        operation_delay: 0.5
+        verification_delay: 1
+        retry_delay: 0.5
+        max_retries: 5
+      
+      geometry_tolerance: 100  # More tolerant for CI environments
+      
+      window_search_patterns:
+        - "gnome-terminal-server"
+        - "gnome-terminal"
+        - "terminal"
+      
+      test_settings:
+        cleanup_after_test: true
+        take_screenshots: false
+        verbose_logging: false
+        
+      environment:
+        DISPLAY: ":99"  # Typically Xvfb display in CI

@@ -1,0 +1,9 @@
+# filename: testbed_split_screen.yaml
+TestBeds:
+  - Name: ChromeOS_SplitScreen_TestBed
+    Controllers: {}
+    TestParams:
+      settings_app: gnome-terminal      # Terminal app to simulate Settings
+      gui_load_delay: 3                 # Seconds to wait for GUI to load
+      action_delay: 1                   # Seconds between UI actions
+    TestClass: SplitScreenFunctionalityTest

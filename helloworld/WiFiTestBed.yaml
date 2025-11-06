@@ -1,0 +1,14 @@
+TestBeds:
+  - Name: LinuxDesktopWiFiTestBed
+    Controllers:
+      # No specific controllers needed for this test
+    TestParams:
+      # Tool configurations for different Linux desktop environments
+      settings_tool: 'gnome-control-center'  # Alternatives: 'nm-connection-editor', 'kde5-nm-connection-editor'
+      wifi_tool: 'nmcli'
+      
+    # You can define multiple DUTs if needed, though for this test one is sufficient
+    Duts:
+      - Serial: 'localhost'
+        # Add any device-specific parameters here if needed
+        labels: ['linux', 'desktop', 'wifi']

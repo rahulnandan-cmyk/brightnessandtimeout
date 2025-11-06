@@ -1,0 +1,12 @@
+# Mobly configuration for Bluetooth test
+TestBeds:
+  - Name: DUT1
+    DeviceType: Linux
+    Serial: DUT1-Linux
+
+Tests:
+  - Path: /home/vvdn/Desktop/google_project/bluetooth.py
+
+# OutputDirectory optional; logs also go to /tmp/logs/mobly
+OutputDirectory: /tmp/logs/mobly
+

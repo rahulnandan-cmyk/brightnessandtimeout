@@ -1,0 +1,10 @@
+TestBeds:
+  - Name: Desktop
+    Controllers:
+      CustomDevice:
+        - device_type: Linux
+          device_name: localhost
+          user: vvdn
+          host: localhost
+          params:
+            display: ":0"

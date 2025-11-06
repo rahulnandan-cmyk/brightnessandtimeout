@@ -1,0 +1,11 @@
+TestBeds:
+  - Name: AndroidWallpaperTestBed
+    Controllers:
+        AndroidDevice:
+          - serial: emulator-5554
+            label: android_device
+            mobly_params:
+              adb_logcat_param: "-b all"
+    TestParams:
+        param1: "wallpaper_test"
+        screenshot_dir: "/sdcard/Pictures"

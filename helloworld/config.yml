@@ -1,0 +1,6 @@
+TestBeds:
+  - Name: SimpleAndroidTestBed
+    Controllers:
+      AndroidDevice:
+        - serial: emulator-5554
+          label: test_device

@@ -1,0 +1,7 @@
+TestBeds:
+  - Name: LinuxDisplay_TestBed
+    Controllers: {}
+    TestParams:
+      brightness_tool: brightnessctl      # Command-line tool to control brightness
+      device_path: intel_backlight        # Optional: specify your backlight device
+    TestClass: LinuxDisplayTest

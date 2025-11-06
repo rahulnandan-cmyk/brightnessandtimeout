@@ -1,0 +1,3 @@
+TestBeds:
+  - Name: linux_browser_testbed
+    Controllers: {}

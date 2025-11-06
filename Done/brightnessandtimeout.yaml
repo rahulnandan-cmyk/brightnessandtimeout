@@ -1,0 +1,21 @@
+# brightnessandtimeout.yaml
+
+TestBeds:
+  - Name: DisplaySettingsManager
+    Controllers:
+      AndroidDevice:
+        - serial: emulator-5554
+          # You can add a label if needed, e.g., label: DUT
+
+    TestParams:
+      # Use these keys to selectively disable tests without commenting out code.
+      # If a key is missing or set to True, the test runs. If set to False, the test is skipped.
+      ENABLE_BRIGHTNESS_TEST: True
+      ENABLE_TIMEOUT_TEST: True
+
+      # Test-specific parameters
+      brightness_levels: [10, 50, 100]
+      timeout_values: [15000, 30000, 60000]
+
+# To skip the brightness test, simply change the value:
+#   ENABLE_BRIGHTNESS_TEST: False

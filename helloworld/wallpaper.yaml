@@ -1,0 +1,36 @@
+TestBeds:
+  - Name: Desktop
+    Controllers:
+      UserParam: &user_params
+        # PyAutoGUI configuration
+        failsafe_enabled: true
+        move_duration: 0.5
+        
+        # Step delays
+        menu_delay: 2
+        app_open_delay: 3
+        settings_load_delay: 2
+        background_change_delay: 2
+        
+        # Step 1: System Tray coordinates
+        system_tray_x: 1841
+        system_tray_y: 8
+        
+        # Step 2: Settings button coordinates
+        settings_x: 1620
+        settings_y: 315
+        
+        # Step 3: Background tab coordinates
+        background_tab_x: 594
+        background_tab_y: 365
+        
+        # Step 4: Background selection coordinates
+        background_select_x: 1094
+        background_select_y: 623
+        
+        # Screenshot configuration
+        screenshot_filename: "background_after_change.png"
+
+    TestCases:
+      - BackgroundChangeTest:
+          user_params: *user_params

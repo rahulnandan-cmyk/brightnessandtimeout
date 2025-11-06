@@ -1,0 +1,9 @@
+TestBeds:
+  - Name: LinuxDisplay_TestBed
+    Controllers: {}
+    TestParams:
+      terminal_app: gnome-terminal
+      target_width: 800
+      target_height: 600
+      gui_load_delay: 3
+    TestClass: LinuxWindowResizeTest

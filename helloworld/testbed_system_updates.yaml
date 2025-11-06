@@ -1,0 +1,7 @@
+# filename: testbed_system_updates.yaml
+TestBeds:
+  - Name: LinuxSystemUpdates_TestBed
+    Controllers: {}
+    TestParams:
+      update_tool: apt                  # Package manager tool (apt or dnf)
+    TestClass: SystemUpdatesTest

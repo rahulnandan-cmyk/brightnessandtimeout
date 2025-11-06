@@ -1,0 +1,7 @@
+TestBeds:
+  - Name: EmulatorTestBed  # Use 'Name' instead of 'TestBedName'
+    Description: Emulator for Mobly tests
+    DeviceConfigs:
+      emulator:
+        type: AndroidDevice
+        serial: emulator-5554
