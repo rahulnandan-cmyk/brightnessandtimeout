@@ -1,0 +1,25 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Virtual env
+venv*/
+env*/
+
+# IDE / Tools
+.idea/
+.vscode/
+
+# Logs / screenshots / dumps
+*.log
+*.png
+*.xml
+*.yaml.bak
+
+# Mobly / UI automation generated artifacts
+#Done/
+#logs/
+window_dump.xml
+screen_debug.png
