@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # src/test_mobly_api.py
-"""Example test using the new API structure."""
+"""Mobly API Testing."""
 import os
 import sys
 
