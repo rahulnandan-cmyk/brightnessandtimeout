@@ -16,12 +16,12 @@ class DisplaySettingsManager:
 
     # Constants
     HOME_KEYWORDS = ["launcher", "home"]
-    DISPLAY_LABELS = [
-        "Settings",
-        "Display",
-        "Brightness level"
-    ]
-    BRIGHTNESS_LABELS = ["Screen timeout"]
+    # DISPLAY_LABELS = ["Display", "Settings"]
+    # BRIGHTNESS_LABELS = ["Brightness level","Display brightness"]
+    # TIMEOUT_LABELS = ["Screen timeout", "Sleep", "Auto-lock", "Display", "Brightness level"]
+    DISPLAY_LABELS = ["Display", "Settings"]
+    BRIGHTNESS_LABELS = ["Brightness level","Display brightness"]
+    TIMEOUT_LABELS = ["Screen timeout"]
 
     DEFAULT_TIMEOUT_MS = 30000
     SETTINGS_PACKAGE = "com.android.settings"
@@ -82,6 +82,87 @@ class DisplaySettingsManager:
         except (RuntimeError, ValueError, OSError) as e:
             logging.error("Teardown failed: %s", e, exc_info=True)
 
+    def scroll_and_click_setting(
+            self, setting_labels: List[str], timeout: int = 2) -> None:
+        """
+        Scrolls the current view to find an element matching any of the given
+        labels, clicks it, and raises an error if none are found.
+        """
+        logging.info(
+            "Attempting to find and click settings related to '%s'...", setting_labels
+        )
+
+        found_label = None
+
+        # 1. Iterate through all possible labels, scrolling to find each one.
+        for label in setting_labels:
+            if self.d(scrollable=True).exists:
+                # Scroll until the text is found.
+                self.d(scrollable=True).scroll.to(textContains=label)
+
+            # 2. Check if the element now exists in the viewport and click it.
+            if self.d(textContains=label).exists:
+                self.d(textContains=label).click()
+                logging.info("Successfully clicked setting with label: '%s'.", label)
+                found_label = label
+                break
+
+        # 3. Handle total failure if no label was found after all attempts.
+        if found_label is None:
+            # Error handling fallback: Collect visible options for debugging.
+            options = [el.text for el in self.d.xpath("//*[@text]").all()]
+            logging.error(
+                "None of the required settings (%s) were found! Options: %s",
+                setting_labels,
+                options,
+                exc_info=True,
+            )
+            raise RuntimeError(
+                f"Could not find any of the required settings: {setting_labels}"
+            )
+
+        time.sleep(timeout)
+
+    def _ensure_home_screen(self) -> None:
+        """Forces the device to the home screen using multiple home presses."""
+        logging.info("Ensuring Home Screen...")
+        pkg = ""
+        for _ in range(3):
+            self.d.press("home")
+            time.sleep(1)
+            pkg = self.d.info.get("currentPackageName", "")
+            logging.info("Current package: %s", pkg)
+            if any(keyword in pkg.lower() for keyword in self.HOME_KEYWORDS):
+                logging.info("Home screen detected: %s", pkg)
+                return
+
+        raise RuntimeError(
+            f"Home Screen not detected after 3 attempts. package: {pkg}"
+        )
+
+    def _navigate_to_display_menu(self) -> None:
+        """Navigates to the main Display Settings Menu."""
+        logging.info("Navigating to Display Settings Menu...")
+
+        # Start Settings App using the new helper method
+        self.access_settings_from_launcher()
+
+        found_display = False
+        # 1. Try to find element if its visible without scrolling
+        for label in self.DISPLAY_LABELS:
+            if self.d(text=label).exists:
+                self.d(text=label).click()
+                logging.info("Opened '%s' settings", label)
+                found_display = True
+                break
+
+        if not found_display:
+            # 2. Scrolling fallback
+            # If this fails, the utility function will raise the RuntimeError.
+            self.scroll_and_click_setting(setting_labels=self.DISPLAY_LABELS)
+
+        time.sleep(2)
+
     # === PUBLIC METHODS (Used by API classes) ===
 
     def wake_up_device(self) -> None:
@@ -109,15 +190,15 @@ class DisplaySettingsManager:
         found_brightness = False
         # 1. Try to find the element if it's visible without scrolling
         for label in self.BRIGHTNESS_LABELS:
-            if self.d(text=label).exists:
-                self.d(text=label).click()
+            if self.d(textContains=label).exists:
+                self.d(textContains=label).click()
                 logging.info("Clicked brightness options: '%s'", label)
                 found_brightness = True
                 break
 
         if not found_brightness:
             # 2. Scrolling fallback: If the direct search fails, use the robust utility.
-            self._scroll_and_click_setting(setting_labels=self.BRIGHTNESS_LABELS)
+            self.scroll_and_click_setting(setting_labels=self.BRIGHTNESS_LABELS)
 
         time.sleep(2)
 
@@ -126,7 +207,7 @@ class DisplaySettingsManager:
         logging.info("Navigating to Screen Timeout Settings...")
         self.close_settings_dialogs()
         self._navigate_to_display_menu()
-        self._scroll_and_click_setting(setting_labels=["Screen timeout"])
+        self.scroll_and_click_setting(setting_labels=self.TIMEOUT_LABELS)
 
     def get_brightness(self) -> int:
         """Get current brightness using ADB shell"""
@@ -168,95 +249,43 @@ class DisplaySettingsManager:
             logging.error("Failed to check screen state: %s", e)
             return False
 
-    # === PRIVATE METHODS (Internal helpers) ===
-
-    def _ensure_home_screen(self) -> None:
-        """Forces the device to the home screen using multiple home presses."""
-        logging.info("Ensuring Home Screen...")
-        pkg = ""
-        for _ in range(3):
-            self.d.press("home")
-            time.sleep(1)
-            pkg = self.d.info.get("currentPackageName", "")
-            logging.info("Current package: %s", pkg)
-            if any(keyword in pkg.lower() for keyword in self.HOME_KEYWORDS):
-                logging.info("Home screen detected: %s", pkg)
-                return
-
-        raise RuntimeError(
-            f"Home Screen not detected after 3 attempts. package: {pkg}"
-        )
-
-    def _scroll_and_click_setting(
-            self, setting_labels: List[str], timeout: int = 2) -> None:
-        """
-        Scrolls the current view to find an element matching any of the given
-        labels, clicks it, and raises an error if none are found.
-        """
-        logging.info(
-            "Attempting to find and click settings related to '%s'...", setting_labels
-        )
-
-        found_label = None
-
-        # 1. Iterate through all possible labels, scrolling to find each one.
-        for label in setting_labels:
-            if self.d(scrollable=True).exists:
-                # Scroll until the text is found.
-                self.d(scrollable=True).scroll.to(textContains=label)
-
-            # 2. Check if the element now exists in the viewport and click it.
-            if self.d(textContains=label).exists:
-                self.d(textContains=label).click()
-                logging.info("Successfully clicked setting with label: '%s'.", label)
-                found_label = label
-                break
-
-        # 3. Handle total failure if no label was found after all attempts.
-        if found_label is None:
-            # Error handling fallback: Collect visible options for debugging.
-            options = [el.text for el in self.d.xpath("//*[@text]").all()]
-            logging.error(
-                "None of the required settings (%s) were found! Options: %s",
-                setting_labels,
-                options,
-                exc_info=True,
-            )
-            raise RuntimeError(
-                f"Could not find any of the required settings: {setting_labels}"
-            )
-
-        time.sleep(timeout)
-
-    def _access_settings_from_launcher(self) -> None:
+    def access_settings_from_launcher(self) -> None:
         """Starts the main Android Settings application."""
         logging.info("Starting Android Settings application...")
         # Use the class constant for consistency
         self.d.app_start(self.SETTINGS_PACKAGE)
         time.sleep(3)
 
-    def _navigate_to_display_menu(self) -> None:
-        """Navigates to the main Display Settings Menu."""
-        logging.info("Navigating to Display Settings Menu...")
+    def verify_settings_ui_visible(self) -> bool:
+        """
+        Verifies that the Settings UI is visible and responsive.
 
-        # Start Settings App using the new helper method
-        self._access_settings_from_launcher()
+        :returns: True if Settings UI elements are visible, False otherwise
+        :rtype: bool
+        """
+        try:
+            # Check if common Settings UI elements are present
+            if self.d(textContains="Settings").exists or self.d(textContains="Search").exists:
+                logging.info("Settings UI is visible and responsive")
+                return True
 
-        found_display = False
-        # 1. Try to find element if its visible without scrolling
-        for label in self.DISPLAY_LABELS:
-            if self.d(text=label).exists:
-                self.d(text=label).click()
-                logging.info("Opened '%s' settings", label)
-                found_display = True
-                break
+            logging.warning("Settings UI elements not detected")
+            return False
+        except (RuntimeError, ValueError, OSError) as err:
+            logging.error("Error verifying Settings UI: %s", err)
+            return False
 
-        if not found_display:
-            # 2. Scrolling fallback
-            # If this fails, the utility function will raise the RuntimeError.
-            self._scroll_and_click_setting(setting_labels=self.DISPLAY_LABELS)
-
+    def debug_display_menu(self):
+        """Debug what's inside Display settings"""
+        self.access_settings_from_launcher()
+        self.scroll_and_click_setting(setting_labels=["Display"])
         time.sleep(2)
+
+        # Get ALL text elements inside Display menu
+        all_elements = self.d.xpath("//*[@text]").all()
+        for el in all_elements:
+            if el.text and len(el.text.strip()) > 0:
+                logging.info("INSIDE DISPLAY MENU: '%s'", el.text)
 
 # Factory function for mobly
 def create_display_settings_manager(ad: android_device.AndroidDevice) -> DisplaySettingsManager:

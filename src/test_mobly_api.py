@@ -3,15 +3,17 @@
 """Example test using the new API structure."""
 import os
 import sys
-import logging
-from mobly import asserts, base_test, test_runner
-from mobly.controllers import android_device
+
 
 # Add the parent directory to Python path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
+import logging
+from mobly import asserts, base_test, test_runner
+from mobly.controllers import android_device
+
 # Import core manager and APIs
-from utils.display_settings_manager import create_display_settings_manager
+from utils.display_settings_manager1 import create_display_settings_manager
 from api.brightness_api import BrightnessAPI
 from api.timeout_api import TimeoutAPI
 from api.settings_launcher_api import SettingsLauncherAPI
