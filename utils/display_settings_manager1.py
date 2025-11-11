@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# utils/display_settings_manager1.py
 """Module for managing and testing Android Display Settings."""
 import logging
 import time
@@ -14,15 +15,13 @@ class DisplaySettingsManager:
     and teardown using UIAutomator2 and ADB shell commands.
     """
 
-    # Constants
+    # ===== Labels =====
     HOME_KEYWORDS = ["launcher", "home"]
-    # DISPLAY_LABELS = ["Display", "Settings"]
-    # BRIGHTNESS_LABELS = ["Brightness level","Display brightness"]
-    # TIMEOUT_LABELS = ["Screen timeout", "Sleep", "Auto-lock", "Display", "Brightness level"]
     DISPLAY_LABELS = ["Display", "Settings"]
     BRIGHTNESS_LABELS = ["Brightness level","Display brightness"]
     TIMEOUT_LABELS = ["Screen timeout"]
 
+    # ===== Constants =====
     DEFAULT_TIMEOUT_MS = 30000
     SETTINGS_PACKAGE = "com.android.settings"
 
@@ -140,7 +139,7 @@ class DisplaySettingsManager:
             f"Home Screen not detected after 3 attempts. package: {pkg}"
         )
 
-    def _navigate_to_display_menu(self) -> None:
+    def navigate_to_display_menu(self) -> None:
         """Navigates to the main Display Settings Menu."""
         logging.info("Navigating to Display Settings Menu...")
 
@@ -287,7 +286,88 @@ class DisplaySettingsManager:
             if el.text and len(el.text.strip()) > 0:
                 logging.info("INSIDE DISPLAY MENU: '%s'", el.text)
 
+    # Add to DisplaySettingsManager class
+
+    def navigate_to_dark_theme_settings(self) -> bool:
+        """Navigates to Dark Theme settings in Display menu."""
+        logging.info("Navigating to Dark Theme Settings...")
+
+        try:
+            # Navigate to Display menu first
+            self._navigate_to_display_menu()
+            time.sleep(2)
+
+            # Look for Dark Theme option
+            dark_theme_labels = [
+                "Dark theme",
+                "Dark mode",
+                "Night mode"
+            ]
+
+            self.scroll_and_click_setting(setting_labels=dark_theme_labels)
+            logging.info("Successfully opened Dark Theme settings")
+            return True
+
+        except Exception as e:
+            logging.error("Failed to navigate to Dark Theme settings: %s", e)
+            return False
+
+    def set_dark_theme_schedule(self, schedule_type: str, custom_time: str = None) -> bool:
+        """
+        Sets dark theme schedule.
+
+        Args:
+            schedule_type: "sunset_sunrise", "custom_time", or "none"
+            custom_time: Time string for custom schedule (e.g., "20:00")
+
+        Returns:
+            bool: True if schedule was set successfully
+        """
+        try:
+            if not self.navigate_to_dark_theme_settings():
+                return False
+
+            time.sleep(2)
+
+            # Click on Schedule option
+            schedule_labels = ["Schedule", "Set schedule"]
+            self.scroll_and_click_setting(setting_labels=schedule_labels)
+            time.sleep(2)
+
+            if schedule_type == "sunset_sunrise":
+                sunset_labels = ["Turns on from sunset to sunrise", "Sunset to sunrise"]
+                self.scroll_and_click_setting(setting_labels=sunset_labels)
+
+            elif schedule_type == "custom_time":
+                custom_labels = ["Turns on at custom time", "Custom schedule"]
+                self.scroll_and_click_setting(setting_labels=custom_labels)
+                # Custom time setting would go here
+
+            elif schedule_type == "none":
+                none_labels = ["None", "Off", "Never"]
+                self.scroll_and_click_setting(setting_labels=none_labels)
+
+            logging.info("Dark Theme schedule set to: %s", schedule_type)
+            return True
+
+        except Exception as e:
+            logging.error("Failed to set Dark Theme schedule: %s", e)
+            return False
+
+    def is_dark_theme_enabled(self) -> bool:
+        """Checks if dark theme is currently enabled via ADB."""
+        try:
+            result = self.ad.adb.shell("settings get secure dark_mode")
+            return result.strip() == "1"
+        except Exception as e:
+            logging.error("Failed to check dark theme status: %s", e)
+            return False
+
+
+
+
 # Factory function for mobly
 def create_display_settings_manager(ad: android_device.AndroidDevice) -> DisplaySettingsManager:
     """Factory function to create a DisplaySettingsManager instance"""
     return DisplaySettingsManager(ad)
+
