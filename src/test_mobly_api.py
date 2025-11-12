@@ -17,6 +17,8 @@ from api.brightness_api import BrightnessAPI
 from api.timeout_api import TimeoutAPI
 from api.settings_launcher_api import SettingsLauncherAPI
 from api.dark_theme_api import DarkThemeAPI
+from api.settings_search_api import SettingsSearchAPI
+
 
 
 class TestChromebookSettings(base_test.BaseTestClass):
@@ -31,6 +33,7 @@ class TestChromebookSettings(base_test.BaseTestClass):
         self.timeout_api = None
         self.launcher_api = None
         self.dark_theme_api = None
+        self.Settings_Search_api = None
 
     def setup_class(self):
         """Get the device and initialize all APIs."""
@@ -41,6 +44,7 @@ class TestChromebookSettings(base_test.BaseTestClass):
         self.brightness_api = BrightnessAPI(self.manager)
         self.timeout_api = TimeoutAPI(self.manager)
         self.dark_theme_api = DarkThemeAPI(self.manager)
+        self.Settings_Search_api = SettingsSearchAPI(self.manager)
 
     def setup_test(self):
         """Per-test setup."""
@@ -51,31 +55,28 @@ class TestChromebookSettings(base_test.BaseTestClass):
         """Per-test teardown."""
         self.manager.teardown_test()
 
-    # def test_settings_launcher(self):
-    #     """Test settings launcher using API."""
-    #     success = self.launcher_api.access_settings_from_launcher()
-    #     asserts.assert_true(success, "Should launch settings successfully")
+    def test_settings_launcher(self):
+        """Test settings launcher using API."""
+        success = self.launcher_api.access_settings_from_launcher()
+        asserts.assert_true(success, "Should launch settings successfully")
 
-    # def test_brightness_adjustment(self):
-    #     """Test brightness adjustment using API."""
-    #     initial, final = self.brightness_api.execute_brightness_test(
-    #         right_press=5, left_press=6, delay=0.5
-    #     )
-    #
-    #     asserts.assert_is_instance(initial, int, "Initial brightness should be integer")
-    #     asserts.assert_is_instance(final, int, "Final brightness should be integer")
-    #     logging.info("Brightness changed from %d to %d", initial, final)
-    #
-    # def test_timeout_settings(self):
-    #     """Test timeout settings using API."""
-    #     timeout_labels = [
-    #         ("15 seconds", 15000, 20),
-    #         ("30 seconds", 30000, 35),
-    #     ]
-    #     self.timeout_api.test_sequential_timeouts(timeout_labels)
-    #
+    def test_brightness_adjustment(self):
+        """Test brightness adjustment using API."""
+        initial, final = self.brightness_api.execute_brightness_test(
+            right_press=5, left_press=6, delay=0.5
+        )
 
+        asserts.assert_is_instance(initial, int, "Initial brightness should be integer")
+        asserts.assert_is_instance(final, int, "Final brightness should be integer")
+        logging.info("Brightness changed from %d to %d", initial, final)
 
+    def test_timeout_settings(self):
+        """Test timeout settings using API."""
+        timeout_labels = [
+            ("15 seconds", 15000, 20),
+            ("30 seconds", 30000, 35),
+        ]
+        self.timeout_api.test_sequential_timeouts(timeout_labels)
 
     def test_complete_dark_theme_functionality(self):
         """
@@ -89,9 +90,9 @@ class TestChromebookSettings(base_test.BaseTestClass):
         test_functions = [
             ("Toggle Enable", lambda: self.dark_theme_api.toggle_dark_theme(enable=True)),
             ("Toggle Disable", lambda: self.dark_theme_api.toggle_dark_theme(enable=False)),
-            # ("Sunset Schedule", self.dark_theme_api.test_sunset_sunrise_schedule),
-            # ("Custom Schedule", lambda: self.dark_theme_api.test_custom_time_schedule("21:00")),
-            # ("Complete Flow", self.dark_theme_api.complete_dark_theme_test_flow)
+            ("Sunset Schedule", self.dark_theme_api.test_sunset_sunrise_schedule),
+            ("Custom Schedule", lambda: self.dark_theme_api.test_custom_time_schedule("21:00")),
+            ("Complete Flow", self.dark_theme_api.complete_dark_theme_test_flow)
         ]
 
         all_passed = True
@@ -112,6 +113,21 @@ class TestChromebookSettings(base_test.BaseTestClass):
         asserts.assert_true(all_passed, "All dark theme tests should pass")
         logging.info("Final Result: %s", "ALL TESTS PASSED"
         if all_passed else "SOME TESTS FAILED")
+
+    def test_settings_ui_visibility(self):
+        """Test that Settings UI is visible."""
+        success = self.launcher_api.verify_settings_ui_visible()
+        asserts.assert_true(success, "Settings UI should be visible")
+
+    def test_search_nonexistent_term(self):
+        """Test search functionality with non-existent term."""
+        success = self.launcher_api.test_search_nonexistent_term("xyzabc123")
+        asserts.assert_true(success, "Should display 'No results found' for non-existent term")
+
+    def test_navigate_settings_via_search(self):
+        """Test navigating to Settings via device search."""
+        success = self.launcher_api.navigate_to_settings_via_search()
+        asserts.assert_true(success, "Should navigate to Settings via search successfully")
 
 if __name__ == "__main__":
     test_runner.main()
