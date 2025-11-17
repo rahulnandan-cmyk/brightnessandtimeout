@@ -1,25 +1,33 @@
-# Python
+# ===== Python cache & build =====
 __pycache__/
 *.pyc
 *.pyo
 *.pyd
-
-# Virtual env
-venv*/
-env*/
-
-# IDE / Tools
-.idea/
-.vscode/
-
-# Logs / screenshots / dumps
+*.pdb
+*.egg
+*.egg-info/
 *.log
-*.png
-*.xml
-*.yaml.bak
 
-# Mobly / UI automation generated artifacts
-#Done/
-#logs/
-window_dump.xml
-screen_debug.png
+# ===== Virtual environments =====
+venv/
+env/
+.venv/
+
+# ===== IDE / Editor settings =====
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# ===== System files =====
+.DS_Store
+Thumbs.db
+
+# ===== Test reports and temp =====
+*.xml
+*.json
+*.html
+*.allure/
+reports/
+logs/
+output/
