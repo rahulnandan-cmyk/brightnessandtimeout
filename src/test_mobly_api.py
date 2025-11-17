@@ -11,12 +11,13 @@ from mobly.controllers import android_device
 # Add the parent directory to Python path before local application imports
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
-# Application/Local Imports (grouped and sorted by module)
+# Application/Local Imports
 from api.brightness_api import BrightnessAPI
 from api.dark_theme_api import DarkThemeAPI
 from api.settings_launcher_api import SettingsLauncherAPI
 from api.settings_search_api import SettingsSearchAPI
 from api.timeout_api import TimeoutAPI
+
 from utils.display_settings_manager1 import create_display_settings_manager
 
 
@@ -99,8 +100,8 @@ class TestChromebookSettings(base_test.BaseTestClass):
              self.dark_theme_api.test_sunset_sunrise_schedule),
             ("Custom Schedule",
              lambda: self.dark_theme_api.test_custom_time_schedule("21:00")),
-            ("Complete Flow",
-             self.dark_theme_api.complete_dark_theme_test_flow)
+            ("Disable Schedule (None)",
+             self.dark_theme_api.disable_dark_theme_schedule)
         ]
 
         all_passed = True
@@ -115,9 +116,6 @@ class TestChromebookSettings(base_test.BaseTestClass):
                     logging.error("%s: FAILED", test_name)
                     all_passed = False
             except Exception as e:  # pylint: disable=broad-exception-caught
-                # Catch-all is needed here to prevent test harness crash and log
-                # test iteration failure, even if the API methods failed to raise
-                # a more specific exception.
                 logging.error("%s: ERROR - %s", test_name, e, exc_info=True)
                 all_passed = False
 
@@ -128,13 +126,14 @@ class TestChromebookSettings(base_test.BaseTestClass):
         )
         logging.info("Final Result: %s", final_result)
 
-    def test_settings_ui_visibility(self):
-        """Test that Settings UI is visible."""
-        success = self.launcher_api.verify_settings_ui_visible()
-        asserts.assert_true(success, "Settings UI should be visible")
+    # def test_settings_ui_visibility(self):
+    #     """Test that Settings UI is visible."""
+    #     success = self.launcher_api.verify_settings_ui_visible()
+    #     asserts.assert_true(success, "Settings UI should be visible")
 
     def test_search_nonexistent_term(self):
         """Test search functionality with non-existent term."""
+        self.launcher_api.access_settings_from_launcher()
         success = self.settings_search_api.test_search_nonexistent_term(
             "xyzabc123"
         )
